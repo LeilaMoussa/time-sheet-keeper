@@ -36,7 +36,7 @@ def write_to_sheet(formatted_fields: list, hrs_today: int, mins_today: int, msg:
     cumulative_hrs += hrs_today
     cumulative_mins += mins_today
     cumulative_work = f'{cumulative_hrs}:{cumulative_mins}'
-    # again, append the 0 when there' one digit
+    # again, append the 0 when there's one digit
 
     cumulative_hrs += cumulative_mins/60  # Floating point number of hours.
     cumulative_compensation = round(comp_per_hr*hrs_today, 2)
@@ -96,6 +96,8 @@ def start_session():
         if state == 'RUNNING':
             choice = input('pause or end\n>>> ')
             # might abstract all this away into a set_state() function, or not
+            # i'd need to make a dict to map commands to states
+            # and maybe even map something (commands or states) to actions
             if choice == 'p' or choice == 'pause':
                 print('Session paused.')
                 state = 'PAUSED'
