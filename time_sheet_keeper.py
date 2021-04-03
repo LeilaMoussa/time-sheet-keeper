@@ -1,5 +1,5 @@
 from datetime import datetime as dt, timedelta as td
-from math import ceil
+from math import ceil, floor
 import gspread
 import oauth2client
 import constants  # My own constant values.
@@ -49,7 +49,7 @@ def write_to_sheet(formatted_fields: list, hrs_today: int, mins_today: int, msg:
     cumulative_hrs += cumulative_mins/60  # Floating point number of hours.
     cumulative_compensation = round(COMP_PER_HR*cumulative_hrs, 2)  # Rounds up.
     
-    row = formatted_fields + [msg, cumulative_work, cumulative_compensation]
+    row = formatted_fields + [msg, cumulative_work, cumulative_hrs, cumulative_compensation]
     print(row)
     wsh.append_rows([row])
     
@@ -67,7 +67,7 @@ def ending_routine(today, record: list, midnight=False):
     if not midnight:
         msg = input('Message\n>>> ')
 
-    print('Calculating...')    
+    print('Calculating...')
     # how does this work with after midnight?
     # i think it works fine
     sum_dur = td()  # This is a timedelta object.
@@ -76,9 +76,10 @@ def ending_routine(today, record: list, midnight=False):
         diff = end - start
         sum_dur += diff  # Timedelta object with seconds & microseconds only.
 
-    hrs_today = sum_dur.seconds//3600
-    mins_today = sum_dur.seconds//60 + 1
-    print("hrs & mins today", hrs_today, mins_today)
+    hours_float = sum_dur.seconds/3600
+    hrs_today = floor(hours_float)
+    mins_today = ceil((hours_float - hrs_today)*60)
+    # print("hrs & mins today", hrs_today, mins_today)
 
     first_start = record[0][0]
     print("first start", first_start)
