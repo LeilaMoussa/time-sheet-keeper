@@ -62,8 +62,8 @@ def ending_routine(today, record: list):
     assert len(record) > 0 and [len(elt) == 2 for elt in record]
 
     msg = input('Message\n>>> ')
-
     print('Calculating...')
+
     sum_dur = td()  # This is a timedelta object.
     for (start, end) in record:
         assert end > start
