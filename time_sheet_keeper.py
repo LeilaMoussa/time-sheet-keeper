@@ -1,5 +1,5 @@
 from datetime import datetime as dt, timedelta as td
-from math import ceil
+from math import ceil, floor
 import gspread
 import oauth2client
 import constants  # My own constant values.
@@ -26,7 +26,7 @@ def format_fields(today, first_start, last_end, hrs_today: int, mins_today: int)
     assert len(formatted_dur) == 5
     return [formatted_day, formatted_start, formatted_end, formatted_dur]
 
-def write_to_sheet(formatted_fields: list, hrs_today: int, mins_today: int, msg: str, midnight=False):
+def write_to_sheet(formatted_fields: list, hrs_today: int, mins_today: int, msg: str):
     sh = gc.open(SHEET_NAME)
     wsh = sh.get_worksheet(0)
     all_recs = wsh.get_all_records()
@@ -44,41 +44,36 @@ def write_to_sheet(formatted_fields: list, hrs_today: int, mins_today: int, msg:
     cumulative_hrs += hrs_today
     cumulative_mins += mins_today
     # format here!!
+    # need to find a nicer way to write this
+    cumulative_hrs_float = cumulative_hrs + cumulative_mins/60  # Floating point number of hours.
+    cumulative_hrs += cumulative_mins//60
+    cumulative_mins %=60
     cumulative_work = f'{cumulative_hrs}:{cumulative_mins}'
     
-    cumulative_hrs += cumulative_mins/60  # Floating point number of hours.
     cumulative_compensation = round(COMP_PER_HR*cumulative_hrs, 2)  # Rounds up.
     
-    row = formatted_fields + [msg, cumulative_work, cumulative_compensation]
+    row = formatted_fields + [msg, cumulative_work, cumulative_hrs_float, cumulative_compensation]
     print(row)
     wsh.append_rows([row])
     
-    if midnight:
-        # In case I'm doing this becaue the midnight signal went off,
-        # I need to leave the message cell empty.
-        # If it's NOT midnight, I need to check the previous message cell,
-        # and write into it as well.
-        pass
-    
     print('Done writing.')
 
-def ending_routine(today, record: list, midnight=False):
+def ending_routine(today, record: list):
     assert len(record) > 0 and [len(elt) == 2 for elt in record]
-    if not midnight:
-        msg = input('Message\n>>> ')
 
-    print('Calculating...')    
-    # how does this work with after midnight?
-    # i think it works fine
+    msg = input('Message\n>>> ')
+
+    print('Calculating...')
     sum_dur = td()  # This is a timedelta object.
     for (start, end) in record:
         assert end > start
         diff = end - start
         sum_dur += diff  # Timedelta object with seconds & microseconds only.
 
-    hrs_today = sum_dur.seconds//3600
-    mins_today = sum_dur.seconds//60 + 1
-    print("hrs & mins today", hrs_today, mins_today)
+    hours_float = sum_dur.seconds/3600
+    hrs_today = floor(hours_float)
+    mins_today = ceil((hours_float - hrs_today)*60)
+    # print("hrs & mins today", hrs_today, mins_today)
 
     first_start = record[0][0]
     print("first start", first_start)
@@ -133,6 +128,12 @@ def start_session():
             raise(ValueError)
 
 if __name__ == '__main__':
-    choice = input('Wanna start working?\n>>> ')
-    if choice == 'y' or choice == 'yes':
+    choice = input('Start working with s or peek cumulative values with c\n>>> ')
+    if choice == 'y':
         start_session()
+    elif choice == 'c':
+        sh = gc.open(SHEET_NAME)
+        wsh = sh.get_worksheet(0)
+        all_recs = wsh.get_all_records() # not good
+        print('Hours so far', all_recs[-1]['Cumulative Work (in hours)'])
+        print('Compensation so far', all_recs[-1]['Cumulative Compensation'])
